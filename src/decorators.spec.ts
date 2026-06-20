@@ -105,7 +105,6 @@ describe('public API', () => {
   it('exports the marker names consumed by eslint rules', () => {
     expect(Object.keys(publicApi).sort()).toEqual([
       'Dto',
-      'DtoBase',
       'SKAPXD_LAYER',
       'UseCase',
     ]);

@@ -22,7 +22,7 @@ type DtoLayer<TBase extends AnyCtor> = {
   ...args: ConstructorParameters<TBase>
 ) => DtoLayerInstance<TBase>);
 
-abstract class EmptyDtoBase {}
+abstract class EmptyDto {}
 
 /**
  * Mixin marcador de DTO de presentacion.
@@ -40,9 +40,9 @@ abstract class EmptyDtoBase {}
  * DTO compone con una base como `StreamableFile`, la marca de capa sigue siendo
  * util, pero reconstruir un stream binario desde JSON no es un contrato valido.
  */
-export function Dto(): DtoLayer<typeof EmptyDtoBase>;
+export function Dto(): DtoLayer<typeof EmptyDto>;
 export function Dto<TBase extends AnyCtor>(Base: TBase): DtoLayer<TBase>;
-export function Dto(Base: AnyCtor = EmptyDtoBase) {
+export function Dto(Base: AnyCtor = EmptyDto) {
   abstract class DtoLayer extends Base {
     declare readonly [SKAPXD_LAYER]: 'dto';
 
@@ -60,13 +60,3 @@ export function Dto(Base: AnyCtor = EmptyDtoBase) {
 
   return DtoLayer;
 }
-
-/**
- * Base precomputada para DTOs de datos sin otra clase base.
- *
- * Es la forma mas simple de obtener el brand type-aware y los helpers de
- * transformacion:
- *
- * `class UserDto extends DtoBase {}`
- */
-export const DtoBase = Dto();

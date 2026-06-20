@@ -6,7 +6,6 @@ The package exports only the names the linter can verify structurally:
 
 - `Dto()` marks request or response DTOs through a mixin with an empty default base.
 - `Dto(Base)` marks DTOs that must compose with another superclass.
-- `DtoBase` is an alias for the common empty-base DTO.
 - `@UseCase()` marks the application boundary that a controller injects.
 - `SKAPXD_LAYER` is the shared layer key. `UseCase` uses it as Nest metadata; `Dto` uses it as a type-level brand on instances.
 
@@ -22,10 +21,10 @@ The model comes from:
 Keep imports explicit:
 
 ```ts
-import { Dto, DtoBase, UseCase } from '@skapxd/nest';
+import { Dto, UseCase } from '@skapxd/nest';
 ```
 
-## `Dto` and `DtoBase`
+## `Dto`
 
 `Dto` is a mixin, not a decorator. A decorator can write runtime metadata, but with Nest's `experimentalDecorators` it does not change the TypeScript type of the class. That makes it a weak signal for a rule that needs to validate the actual return type of a controller. A mixin returns a base class, so its members are part of the instance type inherited by the concrete DTO.
 
@@ -53,7 +52,7 @@ Intention: a DTO is transport structure only. It has no business logic, no mutab
 The linter has two redundant detection signals:
 
 - Brand: the instance type has `readonly [SKAPXD_LAYER]: "dto"` from `@skapxd/nest`.
-- Base identity: `Dto()`, `DtoBase`, and the class returned by `Dto(Base)` are declared in `@skapxd/nest`, so a type-aware rule can walk the base-type chain and detect the origin.
+- Base identity: `Dto()` and the class returned by `Dto(Base)` are declared in `@skapxd/nest`, so a type-aware rule can walk the base-type chain and detect the origin.
 
 `Dto()` and `Dto(Base)` also provide data DTO helpers through `class-transformer`:
 
@@ -86,15 +85,7 @@ user.toPrimitives(); // { name: 'Ada', address: { street: 'Main Street' } }
 
 `fromPrimitives` and `toPrimitives` are for data DTOs. They are not a universal construction contract for DTOs that wrap non-JSON resources. For example, `class PdfFileDto extends Dto(StreamableFile) {}` is valid for the linter and `instanceof StreamableFile`, but reconstructing a binary stream from primitives is not a useful API.
 
-`DtoBase` remains available for teams that prefer a named base in the common case:
-
-```ts
-import { DtoBase } from '@skapxd/nest';
-
-export class CreateUserResponseDto extends DtoBase {}
-```
-
-Breaking change from `0.1.x`: replace `@Dto() class X {}` with `class X extends Dto() {}`, `class X extends DtoBase {}`, or `class X extends Dto(Base) {}`.
+Breaking change from `0.1.x`: replace `@Dto() class X {}` with `class X extends Dto() {}` or `class X extends Dto(Base) {}`.
 
 ## `@UseCase`
 
