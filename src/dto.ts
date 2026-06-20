@@ -1,35 +1,58 @@
-import { SKAPXD_LAYER, type SkapxdLayer } from './metadata';
+import {
+  instanceToPlain,
+  plainToInstance,
+  type ClassConstructor,
+} from 'class-transformer';
 
-type ReflectWithOptionalMetadata = typeof Reflect & {
-  defineMetadata?: (
-    metadataKey: typeof SKAPXD_LAYER,
-    metadataValue: SkapxdLayer,
-    target: object,
-  ) => void;
-};
+import { SKAPXD_LAYER } from './metadata';
+
+// TypeScript requires `any[]` in the generic constructor constraint for mixin classes.
+// eslint-disable-next-line skapxd/no-explicit-any
+type AnyCtor = abstract new (...args: any[]) => object;
 
 /**
- * `@Dto` -- Objeto de TRANSPORTE que cruza la frontera HTTP (request o response).
+ * Mixin marcador de DTO de presentacion.
  *
- * Intencion: declarar la FORMA/contrato de lo que entra o sale por el controller. Solo
- * estructura -- sin logica de negocio ni estado. NO se inyecta (no es un provider): es lo
- * unico que el controller intercambia con el cliente, y lo que swagger documenta. Una
- * entidad de DB (`@Schema`/`@Entity`) NUNCA debe usarse como DTO; por eso el marcador
- * explicito.
+ * Intencion: declarar la FORMA/contrato de lo que entra o sale por el
+ * controller. Como mixin, no como decorador, deja una marca visible en el tipo
+ * de la instancia (`[SKAPXD_LAYER]: "dto"`) para reglas type-aware y agrega
+ * helpers de serializacion basados en la metadata de `class-transformer`
+ * (`@Type`, `@Expose`).
  *
- * FASE 2 (TODO, no implementar aun salvo que sea trivial): si la clase extiende
- * `StreamableFile`, registrar su schema swagger como binario (`type: string,
- * format: binary`) para que un `: Promise<PdfFileDto>` se documente como descarga.
+ * Uso comun: `class UserDto extends DtoBase {}`.
+ * Con otra base: `class PdfFileDto extends Dto(StreamableFile) {}`.
+ *
+ * `fromPrimitives` y `toPrimitives` estan pensados para DTOs de datos. Si el
+ * DTO compone con una base como `StreamableFile`, la marca de capa sigue siendo
+ * util, pero reconstruir un stream binario desde JSON no es un contrato valido.
  */
-export function Dto(): ClassDecorator {
-  return (target) => {
-    const reflectWithMetadata = Reflect as ReflectWithOptionalMetadata;
-    const lacksReflectMetadata = typeof reflectWithMetadata.defineMetadata !== 'function';
+export function Dto<TBase extends AnyCtor>(Base: TBase) {
+  abstract class DtoLayer extends Base {
+    declare readonly [SKAPXD_LAYER]: 'dto';
 
-    if (lacksReflectMetadata) {
-      return;
+    static readonly fromPrimitives = function fromPrimitives<T extends object>(
+      this: ClassConstructor<T>,
+      raw: unknown,
+    ): T {
+      return plainToInstance(this, raw);
+    };
+
+    toPrimitives(): Record<string, unknown> {
+      return instanceToPlain(this);
     }
+  }
 
-    reflectWithMetadata.defineMetadata(SKAPXD_LAYER, 'dto', target);
-  };
+  return DtoLayer;
 }
+
+abstract class EmptyDtoBase {}
+
+/**
+ * Base precomputada para DTOs de datos sin otra clase base.
+ *
+ * Es la forma mas simple de obtener el brand type-aware y los helpers de
+ * transformacion:
+ *
+ * `class UserDto extends DtoBase {}`
+ */
+export const DtoBase = Dto(EmptyDtoBase);

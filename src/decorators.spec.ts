@@ -1,10 +1,12 @@
 import 'reflect-metadata';
 
+import { StreamableFile } from '@nestjs/common';
 import { INJECTABLE_WATERMARK } from '@nestjs/common/constants';
-import { describe, expect, it } from 'vitest';
+import { Expose, Type } from 'class-transformer';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import * as publicApi from './index';
-import { Dto } from './dto';
+import { Dto, DtoBase } from './dto';
 import { SKAPXD_LAYER } from './metadata';
 import { UseCase } from './use-case';
 
@@ -18,6 +20,7 @@ type ReflectWithMetadata = typeof Reflect & {
 };
 
 const metadataReflect = Reflect as ReflectWithMetadata;
+type DtoBrand = { readonly [SKAPXD_LAYER]: 'dto' };
 
 describe('SKAPXD_LAYER', () => {
   it('uses the global symbol registry as metadata key', () => {
@@ -37,36 +40,93 @@ describe('UseCase', () => {
 });
 
 describe('Dto', () => {
-  it('sets the dto layer metadata without making the class injectable', () => {
-    class InvoiceResponseDto {}
+  it('adds a type-level dto brand to instances from DtoBase and Dto(Base)', () => {
+    class InvoiceResponseDto extends DtoBase {}
+    class InlineResponseDto extends Dto(class InlineBase {}) {}
 
-    Dto()(InvoiceResponseDto);
+    const invoiceDto: DtoBrand = new InvoiceResponseDto();
+    const inlineDto: DtoBrand = new InlineResponseDto();
 
-    expect(metadataReflect.getMetadata(SKAPXD_LAYER, InvoiceResponseDto)).toBe('dto');
+    expectTypeOf(new InvoiceResponseDto()).toMatchTypeOf<DtoBrand>();
+    expectTypeOf(new InlineResponseDto()).toMatchTypeOf<DtoBrand>();
+    expect(invoiceDto).toBeInstanceOf(InvoiceResponseDto);
+    expect(inlineDto).toBeInstanceOf(InlineResponseDto);
+    expect(metadataReflect.getMetadata(SKAPXD_LAYER, InvoiceResponseDto)).toBeUndefined();
     expect(metadataReflect.getMetadata(INJECTABLE_WATERMARK, InvoiceResponseDto)).toBeUndefined();
   });
 
-  it('is a safe no-op when reflect-metadata is not loaded', () => {
-    class PlainDto {}
-    const originalDescriptor = Object.getOwnPropertyDescriptor(Reflect, 'defineMetadata');
-
-    try {
-      Object.defineProperty(Reflect, 'defineMetadata', {
-        configurable: true,
-        value: undefined,
-      });
-
-      expect(() => Dto()(PlainDto)).not.toThrow();
-    } finally {
-      if (originalDescriptor) {
-        Object.defineProperty(Reflect, 'defineMetadata', originalDescriptor);
-      }
+  it('constructs the concrete dto subtype from primitives and applies nested type metadata', () => {
+    class AddressDto extends DtoBase {
+      @Expose()
+      street!: string;
     }
+
+    class UserDto extends DtoBase {
+      @Expose()
+      name!: string;
+
+      @Expose()
+      @Type(() => AddressDto)
+      address!: AddressDto;
+    }
+
+    const user = UserDto.fromPrimitives({
+      name: 'Ada',
+      address: { street: 'Main Street' },
+    });
+
+    expectTypeOf(user).toEqualTypeOf<UserDto>();
+    expect(user).toBeInstanceOf(UserDto);
+    expect(user.address).toBeInstanceOf(AddressDto);
+    expect(user.address.street).toBe('Main Street');
+  });
+
+  it('serializes dto instances to plain primitives', () => {
+    class AddressDto extends DtoBase {
+      @Expose()
+      street!: string;
+    }
+
+    class UserDto extends DtoBase {
+      @Expose()
+      name!: string;
+
+      @Expose()
+      @Type(() => AddressDto)
+      address!: AddressDto;
+    }
+
+    const user = UserDto.fromPrimitives({
+      name: 'Ada',
+      address: { street: 'Main Street' },
+    });
+
+    expect(user.toPrimitives()).toEqual({
+      name: 'Ada',
+      address: { street: 'Main Street' },
+    });
+  });
+
+  it('composes with another base class without losing the base instance contract', () => {
+    class PdfFileDto extends Dto(StreamableFile) {}
+
+    const file = new PdfFileDto(new Uint8Array([1, 2, 3]));
+    const brandedFile: DtoBrand = file;
+
+    expectTypeOf(file).toMatchTypeOf<DtoBrand>();
+    expect(brandedFile).toBe(file);
+    expect(file).toBeInstanceOf(PdfFileDto);
+    expect(file).toBeInstanceOf(StreamableFile);
   });
 });
 
 describe('public API', () => {
-  it('exports only the marker names consumed by eslint rules', () => {
-    expect(Object.keys(publicApi).sort()).toEqual(['Dto', 'SKAPXD_LAYER', 'UseCase']);
+  it('exports the marker names consumed by eslint rules', () => {
+    expect(Object.keys(publicApi).sort()).toEqual([
+      'Dto',
+      'DtoBase',
+      'SKAPXD_LAYER',
+      'UseCase',
+    ]);
   });
 });

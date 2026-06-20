@@ -1,7 +1,8 @@
-/** Clave de metadata con la que cada decorador etiqueta la capa de la clase.
- *  Las reglas de @skapxd/eslint-opinionated detectan la capa por el NOMBRE del
- *  decorador y su origen de import; esta metadata es para introspeccion en
- *  runtime (requiere reflect-metadata). Usa el registro global de simbolos para
- *  conservar la misma key si existen varias copias del paquete en el proceso. */
-export const SKAPXD_LAYER = Symbol.for('skapxd:layer');
+/** Clave compartida para marcas de capa.
+ *
+ * `UseCase` la usa como metadata runtime de Nest. `Dto` la usa como brand de
+ * tipo en instancias para que reglas type-aware detecten el retorno real de un
+ * controller sin depender de decoradores invisibles al sistema de tipos.
+ */
+export const SKAPXD_LAYER: unique symbol = Symbol.for('skapxd:layer');
 export type SkapxdLayer = 'dto' | 'use-case';
