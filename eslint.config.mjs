@@ -24,11 +24,4 @@ export default tseslint.config(
       },
     },
   },
-  {
-    // La tarea exige `src/layer.ts` como modulo de capa: key compartida + UseCase.
-    files: ['src/layer.ts'],
-    rules: {
-      'skapxd/filename-matches-root-function': 'off',
-    },
-  },
 );

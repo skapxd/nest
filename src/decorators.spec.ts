@@ -5,18 +5,25 @@ import { describe, expect, it } from 'vitest';
 
 import * as publicApi from './index';
 import { Dto } from './dto';
-import { SKAPXD_LAYER, UseCase } from './layer';
+import { SKAPXD_LAYER } from './metadata';
+import { UseCase } from './use-case';
 
 type ReflectWithMetadata = typeof Reflect & {
   defineMetadata?: (
-    metadataKey: string,
+    metadataKey: string | symbol,
     metadataValue: unknown,
     target: object,
   ) => void;
-  getMetadata: (metadataKey: string, target: object) => unknown;
+  getMetadata: (metadataKey: string | symbol, target: object) => unknown;
 };
 
 const metadataReflect = Reflect as ReflectWithMetadata;
+
+describe('SKAPXD_LAYER', () => {
+  it('uses the global symbol registry as metadata key', () => {
+    expect(SKAPXD_LAYER).toBe(Symbol.for('skapxd:layer'));
+  });
+});
 
 describe('UseCase', () => {
   it('applies Nest injectable metadata and the skapxd layer metadata', () => {

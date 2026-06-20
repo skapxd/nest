@@ -1,4 +1,4 @@
-import { SKAPXD_LAYER, type SkapxdLayer } from './layer';
+import { SKAPXD_LAYER, type SkapxdLayer } from './metadata';
 
 type ReflectWithOptionalMetadata = typeof Reflect & {
   defineMetadata?: (

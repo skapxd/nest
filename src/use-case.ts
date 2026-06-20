@@ -1,11 +1,6 @@
 import { applyDecorators, Injectable, SetMetadata } from '@nestjs/common';
 
-/** Clave de metadata con la que cada decorador etiqueta la capa de la clase.
- *  Las reglas de @skapxd/eslint-opinionated detectan la capa por el NOMBRE del
- *  decorador y su origen de import; esta metadata es para introspeccion en
- *  runtime (requiere reflect-metadata). */
-export const SKAPXD_LAYER = 'skapxd:layer';
-export type SkapxdLayer = 'dto' | 'use-case';
+import { SKAPXD_LAYER } from './metadata';
 
 /**
  * `@UseCase` -- Caso de uso de la capa de APLICACION.
