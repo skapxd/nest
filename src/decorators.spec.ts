@@ -6,7 +6,7 @@ import { Expose, Type } from 'class-transformer';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import * as publicApi from './index';
-import { Dto, DtoBase } from './dto';
+import { Dto } from './dto';
 import { SKAPXD_LAYER } from './metadata';
 import { UseCase } from './use-case';
 
@@ -21,6 +21,21 @@ type ReflectWithMetadata = typeof Reflect & {
 
 const metadataReflect = Reflect as ReflectWithMetadata;
 type DtoBrand = { readonly [SKAPXD_LAYER]: 'dto' };
+const DataDto = Dto();
+
+class AddressDto extends DataDto {
+  @Expose()
+  street!: string;
+}
+
+class UserDto extends DataDto {
+  @Expose()
+  name!: string;
+
+  @Expose()
+  @Type(() => AddressDto)
+  address!: AddressDto;
+}
 
 describe('SKAPXD_LAYER', () => {
   it('uses the global symbol registry as metadata key', () => {
@@ -40,36 +55,16 @@ describe('UseCase', () => {
 });
 
 describe('Dto', () => {
-  it('adds a type-level dto brand to instances from DtoBase and Dto(Base)', () => {
-    class InvoiceResponseDto extends DtoBase {}
-    class InlineResponseDto extends Dto(class InlineBase {}) {}
+  it('adds a type-level dto brand to instances from the default mixed base', () => {
+    const userDto: DtoBrand = new UserDto();
 
-    const invoiceDto: DtoBrand = new InvoiceResponseDto();
-    const inlineDto: DtoBrand = new InlineResponseDto();
-
-    expectTypeOf(new InvoiceResponseDto()).toMatchTypeOf<DtoBrand>();
-    expectTypeOf(new InlineResponseDto()).toMatchTypeOf<DtoBrand>();
-    expect(invoiceDto).toBeInstanceOf(InvoiceResponseDto);
-    expect(inlineDto).toBeInstanceOf(InlineResponseDto);
-    expect(metadataReflect.getMetadata(SKAPXD_LAYER, InvoiceResponseDto)).toBeUndefined();
-    expect(metadataReflect.getMetadata(INJECTABLE_WATERMARK, InvoiceResponseDto)).toBeUndefined();
+    expectTypeOf(new UserDto()).toMatchTypeOf<DtoBrand>();
+    expect(userDto).toBeInstanceOf(UserDto);
+    expect(metadataReflect.getMetadata(SKAPXD_LAYER, UserDto)).toBeUndefined();
+    expect(metadataReflect.getMetadata(INJECTABLE_WATERMARK, UserDto)).toBeUndefined();
   });
 
   it('constructs the concrete dto subtype from primitives and applies nested type metadata', () => {
-    class AddressDto extends DtoBase {
-      @Expose()
-      street!: string;
-    }
-
-    class UserDto extends DtoBase {
-      @Expose()
-      name!: string;
-
-      @Expose()
-      @Type(() => AddressDto)
-      address!: AddressDto;
-    }
-
     const user = UserDto.fromPrimitives({
       name: 'Ada',
       address: { street: 'Main Street' },
@@ -82,20 +77,6 @@ describe('Dto', () => {
   });
 
   it('serializes dto instances to plain primitives', () => {
-    class AddressDto extends DtoBase {
-      @Expose()
-      street!: string;
-    }
-
-    class UserDto extends DtoBase {
-      @Expose()
-      name!: string;
-
-      @Expose()
-      @Type(() => AddressDto)
-      address!: AddressDto;
-    }
-
     const user = UserDto.fromPrimitives({
       name: 'Ada',
       address: { street: 'Main Street' },

@@ -9,6 +9,20 @@ import { SKAPXD_LAYER } from './metadata';
 // TypeScript requires `any[]` in the generic constructor constraint for mixin classes.
 // eslint-disable-next-line skapxd/no-explicit-any
 type AnyCtor = abstract new (...args: any[]) => object;
+type DtoLayerInstance<TBase extends AnyCtor> = InstanceType<TBase> & {
+  readonly [SKAPXD_LAYER]: 'dto';
+  toPrimitives(): Record<string, unknown>;
+};
+type DtoLayer<TBase extends AnyCtor> = {
+  readonly fromPrimitives: <T extends object>(
+    this: ClassConstructor<T>,
+    raw: unknown,
+  ) => T;
+} & (abstract new (
+  ...args: ConstructorParameters<TBase>
+) => DtoLayerInstance<TBase>);
+
+abstract class EmptyDtoBase {}
 
 /**
  * Mixin marcador de DTO de presentacion.
@@ -19,14 +33,16 @@ type AnyCtor = abstract new (...args: any[]) => object;
  * helpers de serializacion basados en la metadata de `class-transformer`
  * (`@Type`, `@Expose`).
  *
- * Uso comun: `class UserDto extends DtoBase {}`.
+ * Uso comun: `class UserDto extends Dto() {}`.
  * Con otra base: `class PdfFileDto extends Dto(StreamableFile) {}`.
  *
  * `fromPrimitives` y `toPrimitives` estan pensados para DTOs de datos. Si el
  * DTO compone con una base como `StreamableFile`, la marca de capa sigue siendo
  * util, pero reconstruir un stream binario desde JSON no es un contrato valido.
  */
-export function Dto<TBase extends AnyCtor>(Base: TBase) {
+export function Dto(): DtoLayer<typeof EmptyDtoBase>;
+export function Dto<TBase extends AnyCtor>(Base: TBase): DtoLayer<TBase>;
+export function Dto(Base: AnyCtor = EmptyDtoBase) {
   abstract class DtoLayer extends Base {
     declare readonly [SKAPXD_LAYER]: 'dto';
 
@@ -45,8 +61,6 @@ export function Dto<TBase extends AnyCtor>(Base: TBase) {
   return DtoLayer;
 }
 
-abstract class EmptyDtoBase {}
-
 /**
  * Base precomputada para DTOs de datos sin otra clase base.
  *
@@ -55,4 +69,4 @@ abstract class EmptyDtoBase {}
  *
  * `class UserDto extends DtoBase {}`
  */
-export const DtoBase = Dto(EmptyDtoBase);
+export const DtoBase = Dto();
