@@ -71,11 +71,11 @@ Reflect.getMetadata(SKAPXD_LAYER, CreateUserUseCase);
 
 ## Publishing
 
-This package is configured for npm Trusted Publishing through GitHub Actions OIDC. There is no `NPM_TOKEN` in the workflow.
+This package is configured for npm Trusted Publishing through GitHub Actions OIDC. There is no `NPM_TOKEN` in the workflow. Publishing runs from `.github/workflows/publish.yml` when a GitHub Release is published.
 
 The package owner must create the Trusted Publisher in npm for package `@skapxd/nest` with:
 
 - GitHub repository: `skapxd/nest`
-- Workflow: `ci.yml`
+- Workflow: `publish.yml`
 
 Without that npm-side configuration, `npm publish --access public` from CI will fail, commonly as a scoped package `404`.

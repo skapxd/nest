@@ -1,12 +1,10 @@
-name: CI/CD
+name: CI
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  release:
-    types: [created]
 
 jobs:
   build-and-test:
@@ -44,34 +42,3 @@ jobs:
           directory: ./test-reports/coverage
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  publish:
-    name: Publish to NPM
-    needs: build-and-test
-    if: github.event_name == 'release'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js for Publishing
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22.x
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Update npm for OIDC trusted publishing
-        run: npm install -g npm@latest
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build Package
-        run: yarn build
-
-      - name: Publish to NPM (OIDC trusted publisher)
-        run: npm publish --access public
