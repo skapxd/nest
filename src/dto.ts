@@ -9,9 +9,25 @@ import { SKAPXD_LAYER } from './metadata';
 // TypeScript requires `any[]` in the generic constructor constraint for mixin classes.
 // eslint-disable-next-line skapxd/no-explicit-any
 type AnyCtor = abstract new (...args: any[]) => object;
+type DtoPlainLeaf = string | number | boolean | null | undefined | Date;
+type DtoMethod = (...args: never[]) => unknown;
+type DtoPrimitives<T> = {
+  [Key in keyof T as Key extends typeof SKAPXD_LAYER
+    ? never
+    : T[Key] extends DtoMethod
+      ? never
+      : Key]: DtoPrimitiveValue<T[Key]>;
+};
+type DtoPrimitiveValue<T> = T extends DtoPlainLeaf
+  ? T
+  : T extends readonly (infer Item)[]
+    ? DtoPrimitiveValue<Item>[]
+    : T extends object
+      ? DtoPrimitives<T>
+      : T;
 type DtoLayerInstance<TBase extends AnyCtor> = InstanceType<TBase> & {
   readonly [SKAPXD_LAYER]: 'dto';
-  toPrimitives(): Record<string, unknown>;
+  toPrimitives<TThis extends object>(this: TThis): DtoPrimitives<TThis>;
 };
 type DtoLayer<TBase extends AnyCtor> = {
   readonly fromPrimitives: <T extends object>(
@@ -23,6 +39,8 @@ type DtoLayer<TBase extends AnyCtor> = {
 ) => DtoLayerInstance<TBase>);
 
 abstract class EmptyDto {}
+const instanceToDtoPrimitives: <T extends object>(object: T) => DtoPrimitives<T> =
+  instanceToPlain;
 
 /**
  * Mixin marcador de DTO de presentacion.
@@ -53,8 +71,8 @@ export function Dto(Base: AnyCtor = EmptyDto) {
       return plainToInstance(this, raw);
     };
 
-    toPrimitives(): Record<string, unknown> {
-      return instanceToPlain(this);
+    toPrimitives(): DtoPrimitives<this> {
+      return instanceToDtoPrimitives(this);
     }
   }
 

@@ -81,7 +81,12 @@ describe('Dto', () => {
       name: 'Ada',
       address: { street: 'Main Street' },
     });
+    const primitives = user.toPrimitives();
 
+    expectTypeOf(primitives).toEqualTypeOf<{
+      name: string;
+      address: { street: string };
+    }>();
     expect(user.toPrimitives()).toEqual({
       name: 'Ada',
       address: { street: 'Main Street' },

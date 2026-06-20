@@ -83,6 +83,8 @@ user.address instanceof AddressDto; // true
 user.toPrimitives(); // { name: 'Ada', address: { street: 'Main Street' } }
 ```
 
+`toPrimitives()` is typed from the DTO instance: methods and the `SKAPXD_LAYER` brand are omitted, arrays and nested DTO properties are transformed recursively, and `Date` is preserved as the `Date` instance that `class-transformer` returns. It does not depend on `@codelytv/primitives-type`; that package targets domain entities and Value Objects, while this package keeps the DTO contract local and license-compatible.
+
 `fromPrimitives` and `toPrimitives` are for data DTOs. They are not a universal construction contract for DTOs that wrap non-JSON resources. For example, `class PdfFileDto extends Dto(StreamableFile) {}` is valid for the linter and `instanceof StreamableFile`, but reconstructing a binary stream from primitives is not a useful API.
 
 Breaking change from `0.1.x`: replace `@Dto() class X {}` with `class X extends Dto() {}` or `class X extends Dto(Base) {}`.
